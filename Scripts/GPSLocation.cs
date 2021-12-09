@@ -8,16 +8,31 @@ using UnityEngine;
 public class GPSLocation : MonoBehaviour
 {
     private PlaceAtLocation placeAtComponent;
+    /// <summary>
+    /// Our average position
+    /// Used since the GPS positions are jumping around a lot
+    /// </summary>
     public Vector3 AveragePosition { get; private set; }
+
+    /// <summary>
+    /// The amount of positions we use to calculate the average
+    /// </summary>
+    public int averagePositionsNumber = 20;
 
     private List<Vector3> positions = new List<Vector3>();
 
+    /// <summary>
+    /// Register this object with GPSManager
+    /// </summary>
     private void Start()
     {
         // Register with GPS Manager
         GameObject.FindGameObjectWithTag("GPSManager").GetComponent<GPSManager>().RegisterGPSObject(this);
     }
 
+    /// <summary>
+    /// TODO: Restructure this to avoid endlessly trying to add PLaceAtLocation
+    /// </summary>
     void Update()
     {
         if (placeAtComponent == null)
@@ -29,6 +44,13 @@ public class GPSLocation : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Listens to the ObjectPositionUpdated event from PlaceAtLocation
+    /// Calculates an average of the past 20 positions
+    /// </summary>
+    /// <param name="go">Location prefab gameobject</param>
+    /// <param name="loc">Location</param>
+    /// <param name="numUpdates"></param>
     private void Relocated(GameObject go, Location loc, int numUpdates)
     {
         if (AveragePosition == null) return;
@@ -36,7 +58,7 @@ public class GPSLocation : MonoBehaviour
 
         positions.Add(transform.position);
 
-        if (positions.Count > 20) positions.RemoveAt(0);
+        if (positions.Count > averagePositionsNumber) positions.RemoveAt(0);
 
         AveragePosition = positions.Aggregate(Vector3.zero, (acc, v) => acc + v) / positions.Count;
 
@@ -49,11 +71,17 @@ public class GPSLocation : MonoBehaviour
         */
     }
 
+    /// <summary>
+    /// Stops position average calculation
+    /// </summary>
     public void FreezeAverage()
     {
         placeAtComponent.ObjectPositionUpdated.RemoveListener(Relocated);
     }
 
+    /// <summary>
+    /// Starts position average calculation
+    /// </summary>
     public void UnfreezeAverage()
     {
         placeAtComponent.ObjectPositionUpdated.AddListener(Relocated);
